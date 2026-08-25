@@ -1,0 +1,17 @@
+name = "HandIsomorphism"
+uuid = "3834e556-cfb7-4bde-bcfd-1d920ea1697f"
+version = "1.0.0-DEV"
+authors = ["Yacine Al-Najjar <yalnajja@gmail.com>"]
+
+[deps]
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
+[compat]
+StaticArrays = "1.9.19"
+julia = "1.12"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
