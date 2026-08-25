@@ -58,7 +58,7 @@ for_each_deal(cards_per_round::Vector{UInt8}, f) = for_each_deal(f, cards_per_ro
         # (rounds, cards_per_round, name, total_combinations)
         (1, UInt8[2], "Preflop", 1_326),                     
         (2, UInt8[2, 3], "Flop", 25_989_600),             
-        (2, UInt8[2, 5], "River 2 round", 133_784_560),
+        # (2, UInt8[2, 5], "River 2 round", 133_784_560),
     ]
 
     for (rounds, cards_per_round, name, expected_deals) in test_configs

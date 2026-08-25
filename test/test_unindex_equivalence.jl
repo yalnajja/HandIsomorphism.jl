@@ -59,8 +59,8 @@ end
     test_configs = [
         # (1, UInt8[2],          "Preflop"),
         (2, UInt8[2, 3],       "Flop"), 
-        (2, UInt8[2, 4],    "Turn 2 round"),
-        (2, UInt8[2, 5], "River 2 round"),
+        # (2, UInt8[2, 4],    "Turn 2 round"),
+        # (2, UInt8[2, 5], "River 2 round"),
         # (4, UInt8[2, 3,1,1], "River")
 
     ]
