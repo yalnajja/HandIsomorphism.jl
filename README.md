@@ -11,7 +11,7 @@ A high-performance, pure-Julia implementation of Kevin Waugh’s **suit-isomorph
 
 ## Key Features
 
-- **Blazing Fast**: Faster than Waugh's reference C implementation (`-O3 -DNDEBUG`) across indexing and unindexing benchmarks.
+- **Fast**: Usualy faster than Waugh's reference C implementation (`-O3 -DNDEBUG`) across most indexing and unindexing benchmarks when called with ccall.
 - **Zero Allocations**: Preallocated state structs (`HandIndexerState`, `HandUnindexState`) ensure $0\text{ bytes}$ allocated on hot paths.
 - **Arbitrary Game Structures**: Supports any multi-round card structure (e.g., 2-round Flop `[2, 3]`, 4-round Texas Hold'em `[2, 3, 1, 1]`, Omaha `[4, 3, 1, 1]`).
 - **Bidirectional**: Supports fast indexing (`cards -> index`) and unindexing/reconstruction (`index -> canonical cards`).
@@ -141,7 +141,7 @@ end
 
 
 
-Benchmarked against Kevin Waugh's reference C implementation compiled with `-std=c99 -Wall -O3 -DNDEBUG -fPIC` across 10,000 random hands per configuration:
+Benchmarked against Kevin Waugh's reference C implementation compiled with `-std=c99 -Wall -O3 -DNDEBUG -fPIC` called from Julia using ccall across 10,000 random hands per configuration:
 
 | Game / Configuration | Operation | Julia (`HandIsomorphism.jl`) | C Reference | Speedup | Allocations |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -158,10 +158,8 @@ Benchmarked against Kevin Waugh's reference C implementation compiled with `-std
 
 ## Architecture & Optimizations
 
-1. **Static In-Place Scratch Storage**: Small, fixed-size suit and round buffers (`SUITS = 4`) use `StaticArrays.MVector` within `HandIndexerState` and `HandUnindexState`, allowing complete loop unrolling and zero runtime heap allocations.
-2. **Offset-Equal Bit Packing**: Stores cumulative configuration offsets and equal-suit permutation flags in a single packed `UInt64` (`offset << 3 | equal`), saving cache space and cutting memory lookups during binary search.
-3. **Branchless Bitmask Checks**: Direct bit tests eliminate matrix lookups in hot suit-grouping routines.
-4. **Subarray Views**: Slices in multi-round loops utilize `@views` to pass contiguous card slices without allocating intermediate vectors.
+1. **Offset-Equal Bit Packing**: Stores cumulative configuration offsets and equal-suit permutation flags in a single packed `UInt64` (`offset << 3 | equal`), saving cache space and cutting memory lookups during binary search.
+2. **Branchless Bitmask Checks**: Direct bit tests eliminate matrix lookups in hot suit-grouping routines.
 
 ---
 
