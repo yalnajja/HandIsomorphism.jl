@@ -87,6 +87,27 @@ mutable struct HandIndexer
     end
 end
 
+
+"""
+    HandIndexer(cards_per_round::AbstractVector{<:Integer}) -> HandIndexer
+
+Convenience constructor to create and initialize a `HandIndexer` from a vector specifying
+the number of cards dealt in each round (e.g., `[2, 3, 1, 1]` for Texas Hold'em).
+
+### Throws:
+- `ArgumentError`: If the configuration is invalid (rounds > `MAX_ROUNDS`, 0 rounds, or total cards > 52).
+"""
+function HandIndexer(cards_per_round::AbstractVector{<:Integer})
+    indexer = HandIndexer()
+    cpr = Vector{UInt8}(cards_per_round)
+    success = hand_indexer_init(length(cpr), cpr, indexer)
+    if !success
+        throw(ArgumentError("Invalid hand configuration: cards_per_round = $(cards_per_round). Check that 1 <= rounds <= $(MAX_ROUNDS) and total cards <= $(CARDS)."))
+    end
+    return indexer
+end
+
+
 # -------------------------------------------------------------------
 # HandIndexerState
 #
@@ -192,15 +213,6 @@ function __init__()
             j += 1
         end
     end
-    # for i in 0:((1<<RANKS)-1)
-    #     set = (~i) & ((1 << RANKS) - 1)
-    #     for j in 0:31
-    #         if set != 0
-    #             nth_unset[i+1, j+1] = UInt8(trailing_zeros(set))
-    #             set &= set - 1
-    #         end
-    #     end
-    # end
 
     nCr_ranks[1, 1] = 1
     for i in 1:RANKS
@@ -250,7 +262,6 @@ function __init__()
             used |= (1 << shifted_suit)
         end
     end
-    # __init_nth_unset__()
 end
 
 function enumerate_configurations_r!(rounds, cards_per_round, round, remaining, suit, equal, used, configuration, observe_fn, data)
@@ -473,6 +484,23 @@ function tabulate_permutations(round, count, indexer)
     indexer.permutation_to_configuration[r][idx+1] = found_idx
 end
 
+
+"""
+    hand_indexer_init(rounds::Integer, cards_per_round::AbstractVector{<:Integer}, indexer::HandIndexer) -> Bool
+
+Initialize a `HandIndexer` instance for a game with a given number of dealing `rounds`
+and card distributions per round.
+
+### Arguments:
+- `rounds`: Total number of dealing/betting rounds (must satisfy `1 <= rounds <= MAX_ROUNDS`).
+- `cards_per_round`: Number of cards dealt in each round.
+- `indexer`: Target `HandIndexer` struct to populate.
+
+### Returns:
+- `Bool`: `true` if initialization succeeded; `false` if `rounds == 0`, `rounds > MAX_ROUNDS`, or total cards dealt exceed `CARDS` (52).
+"""
+
+
 function hand_indexer_init(rounds::Integer, cards_per_round::Vector{UInt8}, indexer::HandIndexer)
     if rounds == 0 || rounds > MAX_ROUNDS || sum(cards_per_round[1:rounds]) > CARDS
         return false
@@ -543,10 +571,48 @@ function hand_indexer_init(rounds::Integer, cards_per_round::Vector{UInt8}, inde
     return true
 end
 
+
+"""
+    hand_indexer_size(indexer::HandIndexer, round::Integer) -> UInt64
+
+Return the total number of unique canonical isomorphic hand equivalence classes 
+for a given 0-based `round`.
+
+### Arguments:
+- `indexer`: The initialized `HandIndexer`.
+- `round`: The 0-based round index (e.g., `0` for Preflop, `1` for Flop, `2` for Turn, `3` for River in Texas Hold'em). Must satisfy `0 <= round < indexer.rounds`.
+
+### Returns:
+- `UInt64`: Total number of canonical isomorphic hands for the specified round.
+
+### Example:
+```julia
+indexer = HandIndexer([2, 3, 1, 1])  # Texas Hold'em
+hand_indexer_size(indexer, 0)        # 169 (Preflop)
+hand_indexer_size(indexer, 1)        # 1,286,792 (Flop)
+hand_indexer_size(indexer, 3)        # 2,428,287,420 (River)
+"""
+
 function hand_indexer_size(indexer::HandIndexer, round::Integer)
     @assert round < indexer.rounds "Round exceeds initialized indexer bounds"
     return indexer.round_size[round+1]
 end
+
+"""
+    hand_indexer_state_init!(state::HandIndexerState) -> HandIndexerState
+
+Reset an existing `HandIndexerState` instance to its initial blank state before 
+beginning round-by-round indexing of a new hand.
+
+Clears accumulated suit indices, rank bitmasks, and permutation multipliers without 
+triggering any heap allocations.
+
+### Arguments:
+- `state`: The `HandIndexerState` instance to reset in-place.
+
+### Returns:
+- `HandIndexerState`: The reset state object (allows method chaining).
+"""
 
 function hand_indexer_state_init!(state::HandIndexerState)
     fill!(state.suit_index, 0)
@@ -562,6 +628,36 @@ end
         v[u], v[w] = v[w], v[u]
     end
 end
+
+"""
+    hand_index_next_round!(indexer::HandIndexer, cards::AbstractVector{<:Integer}, state::HandIndexerState) -> UInt64
+
+Incrementally advance the indexing state by one round using the newly dealt `cards` for that round, 
+and return the 1-based canonical isomorphic equivalence index for the updated state.
+
+This function performs in-place updates to `state` (accumulating rank bitmasks, suit indices, and 
+permutation trackers) without incurring any heap allocations.
+
+### Arguments:
+- `indexer`: The initialized `HandIndexer` describing the game structure.
+- `cards`: An array of 0-based card IDs (`0:51`) dealt *specifically in this round* (length must match `indexer.cards_per_round[state.round + 1]`).
+- `state`: The `HandIndexerState` instance tracking multi-round progression.
+
+### Returns:
+- `UInt64`: The 1-based canonical isomorphic equivalence index for the hand up to the current round.
+
+### Example:
+```julia
+indexer = HandIndexer([2, 3, 1, 1])  # Texas Hold'em
+state = HandIndexerState()
+hand_indexer_state_init!(state)
+
+# Round 0: Preflop (Ah Kd -> 51, 44)
+preflop_idx = hand_index_next_round!(indexer, [51, 44], state)
+
+# Round 1: Flop (Qc Jh Ts -> 41, 39, 36)
+flop_idx = hand_index_next_round!(indexer, [41, 39, 36], state)
+"""
 
 function hand_index_next_round!(indexer::HandIndexer, cards::AbstractVector{<:Integer}, state::HandIndexerState)
     round = state.round
