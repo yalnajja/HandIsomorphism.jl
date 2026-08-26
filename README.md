@@ -1,11 +1,11 @@
 # HandIsomorphism.jl
 
-[![CI](https://github.com/yalnajja/HandIsomorphism.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/YourUsername/HandIsomorphism.jl/actions)
+[![CI](https://github.com/yalnajja/HandIsomorphism.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/yalnajja/HandIsomorphism.jl/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 A high-performance, pure-Julia implementation of Kevin Waugh’s **suit-isomorphic hand indexing algorithm**. 
 
-`HandIsomorphism.jl` maps poker hands across multi-round extensive-form games (e.g., Texas Hold'em, Omaha, Leduc) to minimal canonical equivalence classes, dramatically compressing state and strategy spaces in CFR (Counterfactual Regret Minimization) solvers and game tree analyzers.
+`HandIsomorphism.jl` maps poker hands across multi-round extensive-form games (e.g., Texas Hold'em, Omaha, Leduc) to minimal canonical equivalence classes, compressing state and strategy spaces in CFR (Counterfactual Regret Minimization) solvers.
 
 ---
 
@@ -50,8 +50,7 @@ using HandIsomorphism
 cards_per_round = UInt8[2, 3, 1, 1]
 rounds = length(cards_per_round)
 
-indexer = HandIndexer()
-hand_indexer_init(rounds, cards_per_round, indexer)
+indexer = HandIndexer(cards_per_round)
 
 # Query the size of the isomorphic state space at each round
 for r in 0:(rounds - 1)
@@ -121,16 +120,16 @@ flop_idx = hand_index_next_round!(indexer, flop_cards, state)
 When unindexing, `HandIsomorphism.jl` expects a 1-based index `[1, hand_indexer_size]`. 
 
 
-Reconstruct a canonical card configuration from an index:
+Reconstruct a canonical hand from an index:
 
 ```julia
-scratch = HandUnindexState()
+unindexState = HandUnindexState()
 out_cards = zeros(UInt8, sum(cards_per_round))
 
 target_round = 3 # 0-based (3 = River)
 canonical_index = river_idx
 
-success = hand_unindex!(indexer, target_round, canonical_index, out_cards, scratch)
+success = hand_unindex!(indexer, target_round, canonical_index, out_cards, unindexState)
 
 if success
     println("Reconstructed cards: ", out_cards)
@@ -166,20 +165,19 @@ Benchmarked against Kevin Waugh's reference C implementation compiled with `-std
 ## API Reference
 
 ### Structs
-- `HandIndexer()`: Top-level structure holding configuration tables and combinatorial mappings for a game.
+- `HandIndexer(card_per_round)`: Top-level structure holding configuration tables and combinatorial mappings for a game.
 - `HandIndexerState()`: Mutable state container for indexing operations.
 - `HandUnindexState()`: Mutable state container for unindexing operations.
 
 ### Indexing Methods
-- `hand_indexer_init(rounds, cards_per_round, indexer) -> Bool`
 - `hand_indexer_size(indexer, round) -> UInt64`
-- `hand_indexer_state_init!(state)`
-- `hand_index_next_round!(indexer, cards, state) -> UInt64`
-- `hand_index_all!(indexer, cards, indices, state) -> UInt64`
-- `hand_index_last!(indexer, cards, state) -> UInt64`
+- `hand_indexer_state_init!(indexerState)`
+- `hand_index_next_round!(indexer, cards, indexerState) -> UInt64`
+- `hand_index_all!(indexer, cards, indices, indexerState) -> UInt64`
+- `hand_index_last!(indexer, cards, indexerState) -> UInt64`
 
 ### Unindexing Methods
-- `hand_unindex!(indexer, round, index, cards, [scratch]) -> Bool`
+- `hand_unindex!(indexer, round, index, cards, unindexState) -> Bool`
 
 ---
 

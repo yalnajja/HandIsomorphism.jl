@@ -33,8 +33,7 @@ function run_benchmarks()
         # ---------------------------------------------------------
         # 1. Initialize Julia Indexer
         # ---------------------------------------------------------
-        jl_indexer = HandIsomorphism.HandIndexer()
-        HandIsomorphism.hand_indexer_init(rounds, cards_per_round, jl_indexer)
+        jl_indexer = HandIsomorphism.HandIndexer(cards_per_round)
         
         # Preallocate zero-allocation states
         jl_state = HandIsomorphism.HandIndexerState()

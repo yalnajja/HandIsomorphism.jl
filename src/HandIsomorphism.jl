@@ -1,6 +1,6 @@
 module HandIsomorphism
 
-export HandIndexer, HandIndexerState, HandUnindexState, hand_indexer_init, hand_indexer_size,
+export HandIndexer, HandIndexerState, HandUnindexState, hand_indexer_init!, hand_indexer_size,
     hand_indexer_state_init!, hand_index_all!, hand_index_last!,
     hand_index_next_round!, hand_unindex!, deck_get_rank, deck_get_suit, deck_make_card
 
@@ -100,7 +100,7 @@ the number of cards dealt in each round (e.g., `[2, 3, 1, 1]` for Texas Hold'em)
 function HandIndexer(cards_per_round::AbstractVector{<:Integer})
     indexer = HandIndexer()
     cpr = Vector{UInt8}(cards_per_round)
-    success = hand_indexer_init(length(cpr), cpr, indexer)
+    success = hand_indexer_init!(length(cpr), cpr, indexer)
     if !success
         throw(ArgumentError("Invalid hand configuration: cards_per_round = $(cards_per_round). Check that 1 <= rounds <= $(MAX_ROUNDS) and total cards <= $(CARDS)."))
     end
@@ -182,7 +182,7 @@ mutable struct HandUnindexState
     end
 end
 
-# Temporary context used only during hand_indexer_init. Holds the
+# Temporary context used only during hand_indexer_init!. Holds the
 # indexer being built plus per-round scratch arrays for raw (unpacked)
 # offsets/equal values, since those aren't final (cumulative) until
 # after the full enumeration pass completes.
@@ -307,7 +307,7 @@ end
 # values) rather than directly into packed indexer storage, since the
 # offset here is still a per-configuration *size* at this point -- it
 # only becomes a true offset after the prefix-sum pass in
-# hand_indexer_init.
+# hand_indexer_init!.
 function tabulate_configurations(round, configuration, ctx::ConfigTabulateCtx)
     indexer = ctx.indexer
     r = round + 1
@@ -486,7 +486,7 @@ end
 
 
 """
-    hand_indexer_init(rounds::Integer, cards_per_round::AbstractVector{<:Integer}, indexer::HandIndexer) -> Bool
+    hand_indexer_init!(rounds::Integer, cards_per_round::AbstractVector{<:Integer}, indexer::HandIndexer) -> Bool
 
 Initialize a `HandIndexer` instance for a game with a given number of dealing `rounds`
 and card distributions per round.
@@ -501,7 +501,7 @@ and card distributions per round.
 """
 
 
-function hand_indexer_init(rounds::Integer, cards_per_round::Vector{UInt8}, indexer::HandIndexer)
+function hand_indexer_init!(rounds::Integer, cards_per_round::Vector{UInt8}, indexer::HandIndexer)
     if rounds == 0 || rounds > MAX_ROUNDS || sum(cards_per_round[1:rounds]) > CARDS
         return false
     end
