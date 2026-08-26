@@ -1,6 +1,6 @@
 module HandIsomorphism
 
-export HandIndexer, HandIndexerState, HandUnindexState, hand_indexer_init!, hand_indexer_size,
+export HandIndexer, HandIndexerState, HandUnindexState, hand_indexer_size,
     hand_indexer_state_init!, hand_index_all!, hand_index_last!,
     hand_index_next_round!, hand_unindex!, deck_get_rank, deck_get_suit, deck_make_card
 
@@ -80,11 +80,11 @@ mutable struct HandIndexer
     configuration_to_suit_size::Vector{Matrix{UInt32}}
     configuration_to_offset_equal::Vector{Vector{UInt64}}   # packed: offset<<3 | equal
 
-    function HandIndexer()
-        new(0, UInt8[], UInt8[], zeros(UInt32, MAX_ROUNDS), zeros(UInt32, MAX_ROUNDS),
-            zeros(UInt64, MAX_ROUNDS), Vector{Vector{UInt32}}(), Vector{Vector{UInt32}}(),
-            Vector{Matrix{UInt32}}(), Vector{Matrix{UInt32}}(), Vector{Vector{UInt64}}())
-    end
+    # function HandIndexer()
+    #     new(0, UInt8[], UInt8[], zeros(UInt32, MAX_ROUNDS), zeros(UInt32, MAX_ROUNDS),
+    #         zeros(UInt64, MAX_ROUNDS), Vector{Vector{UInt32}}(), Vector{Vector{UInt32}}(),
+    #         Vector{Matrix{UInt32}}(), Vector{Matrix{UInt32}}(), Vector{Vector{UInt64}}())
+    # end
 end
 
 
@@ -98,7 +98,9 @@ the number of cards dealt in each round (e.g., `[2, 3, 1, 1]` for Texas Hold'em)
 - `ArgumentError`: If the configuration is invalid (rounds > `MAX_ROUNDS`, 0 rounds, or total cards > 52).
 """
 function HandIndexer(cards_per_round::AbstractVector{<:Integer})
-    indexer = HandIndexer()
+    indexer = HandIndexer(0, UInt8[], UInt8[], zeros(UInt32, MAX_ROUNDS), zeros(UInt32, MAX_ROUNDS),
+            zeros(UInt64, MAX_ROUNDS), Vector{Vector{UInt32}}(), Vector{Vector{UInt32}}(),
+            Vector{Matrix{UInt32}}(), Vector{Matrix{UInt32}}(), Vector{Vector{UInt64}}())
     cpr = Vector{UInt8}(cards_per_round)
     success = hand_indexer_init!(length(cpr), cpr, indexer)
     if !success

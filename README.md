@@ -1,6 +1,7 @@
 # HandIsomorphism.jl
 
 [![CI](https://github.com/yalnajja/HandIsomorphism.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/yalnajja/HandIsomorphism.jl/actions)
+[![Coverage](https://codecov.io/gh/yalnajja/HandIsomorphism.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/yalnajja/HandIsomorphism.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 A high-performance, pure-Julia implementation of Kevin Waugh’s **suit-isomorphic hand indexing algorithm**. 
