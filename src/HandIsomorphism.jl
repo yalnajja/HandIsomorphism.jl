@@ -91,7 +91,7 @@ end
 """
     HandIndexer(cards_per_round::AbstractVector{<:Integer}) -> HandIndexer
 
-Convenience constructor to create and initialize a `HandIndexer` from a vector specifying
+Create and initialize a `HandIndexer` from a vector specifying
 the number of cards dealt in each round (e.g., `[2, 3, 1, 1]` for Texas Hold'em).
 
 ### Throws:

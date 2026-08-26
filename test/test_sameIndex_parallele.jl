@@ -157,8 +157,7 @@ end
     for (rounds, cards_per_round, name, expected_deals) in test_configs
         @testset "$name ($expected_deals deals)" begin
             # Initialize indexers
-            native_indexer = HandIndexer()
-            @test hand_indexer_init!(rounds, cards_per_round, native_indexer) == true
+            native_indexer = HandIndexer(cards_per_round)
 
             c_indexer = Ref{hand_indexer_s}(hand_indexer_s())
             @test c_hand_indexer_init(rounds, cards_per_round, c_indexer) == true

@@ -70,8 +70,7 @@ using Base.Threads
 
     for (rounds, cards_per_round, name) in test_configs
         @testset "$name Testing" begin
-            native_indexer = HandIndexer()
-            @test hand_indexer_init!(rounds, cards_per_round, native_indexer) == true
+            native_indexer = HandIndexer(cards_per_round)
 
             c_indexer = Ref{hand_indexer_s}(hand_indexer_s())
             @test c_hand_indexer_init(rounds, cards_per_round, c_indexer) == true

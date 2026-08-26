@@ -64,8 +64,7 @@ for_each_deal(cards_per_round::Vector{UInt8}, f) = for_each_deal(f, cards_per_ro
     for (rounds, cards_per_round, name, expected_deals) in test_configs
         @testset "$name ($expected_deals deals)" begin
             # 1. Initialize Native Julia Indexer
-            native_indexer = HandIndexer()
-            @test hand_indexer_init!(rounds, cards_per_round, native_indexer) == true
+            native_indexer = HandIndexer(cards_per_round)
 
             # 2. Initialize C Indexer
             c_indexer = Ref{hand_indexer_s}(hand_indexer_s())
