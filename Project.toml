@@ -7,7 +7,7 @@ authors = ["Yacine Al-Najjar <yalnajja@gmail.com>"]
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
-StaticArrays = "1.9.19"
+StaticArrays = "1"
 julia = "1.10"
 
 [extras]
