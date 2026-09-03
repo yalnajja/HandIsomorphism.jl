@@ -104,6 +104,7 @@ function run_benchmarks()
                 c_hand_unindex($c_indexer, $final_round_idx, idx, $out_cards_c)
             end
         end
+
         
         # Free C Memory allocated by init
         c_hand_indexer_free(c_indexer)

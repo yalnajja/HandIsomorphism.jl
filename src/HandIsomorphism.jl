@@ -2,7 +2,7 @@ module HandIsomorphism
 
 export HandIndexer, HandIndexerState, HandUnindexState, hand_indexer_size,
     hand_indexer_state_init!, hand_index_all!, hand_index_last!,
-    hand_index_next_round!, hand_unindex!, deck_get_rank, deck_get_suit, deck_make_card
+    hand_index_next_round!, hand_unindex!,hand_indexer_weight, deck_get_rank, deck_get_suit, deck_make_card
 
 
 using StaticArrays
@@ -828,20 +828,28 @@ Reconstruct a canonical representative set of cards for a given canonical hand `
 - `Bool`: `true` if unindexing succeeded; `false` if `round` or `index` is out of bounds.
 """
 
+"""
+    hand_unindex!(indexer::HandIndexer, round::Integer, index::Integer, cards::AbstractVector{<:Integer}, scratch::HandUnindexState) -> UInt32
+
+Reconstruct a canonical representative set of cards for a given canonical hand `index` and `round`,
+and return its isomorphism weight (the number of concrete combinations it represents).
+
+### Returns:
+- `UInt32`: The isomorphism weight of the canonical hand (e.g. 6 for pocket pairs, 24 for rainbow flops).
+            Returns `0` if `round` or `index` is invalid.
+"""
 function hand_unindex!(indexer::HandIndexer, round::Integer, index::Integer, cards::AbstractVector{<:Integer}, scratch::HandUnindexState)
     index -= 1
     r = round + 1
     @inbounds if round >= indexer.rounds || index >= indexer.round_size[r]
-        return false
+        return UInt32(0)
     end
 
     @inbounds packed_r = indexer.configuration_to_offset_equal[r]
     @inbounds suitsize_r = indexer.configuration_to_suit_size[r]
     @inbounds config_r = indexer.configuration[r]
 
-    # Binary search over packed (offset<<3 | equal) entries. Only the
-    # offset half is compared; the equal half rides along for free once
-    # we land on cfg_idx, saving a separate array touch afterward.
+    # Binary search over packed (offset<<3 | equal) entries
     low = 1
     high = indexer.configurations[r]
     cfg_idx = 1
@@ -862,6 +870,7 @@ function hand_unindex!(indexer::HandIndexer, round::Integer, index::Integer, car
     suit_index = scratch.suit_index
     fill!(suit_index, 0)
 
+    automorphisms = 1
     i = 1
     @inbounds while i <= SUITS
         group_len = 1
@@ -901,6 +910,11 @@ function hand_unindex!(indexer::HandIndexer, round::Integer, index::Integer, car
             suit_index[i] = low_b
             suit_index[i+1] = group_index - low_val
 
+            # --- FREE WEIGHT CHECK ---
+            if suit_index[i] == suit_index[i+1]
+                automorphisms *= 2
+            end
+
         elseif group_len == 3
             base = UInt64(3); col = 4
             low_b = UInt64(0); high_b = suit_size
@@ -931,6 +945,14 @@ function hand_unindex!(indexer::HandIndexer, round::Integer, index::Integer, car
             end
             suit_index[i+1] = low_b2
             suit_index[i+2] = group_index - low_val2
+
+            # --- FREE WEIGHT CHECK ---
+            s0, s1, s2 = suit_index[i], suit_index[i+1], suit_index[i+2]
+            if s0 == s1 == s2
+                automorphisms *= 6
+            elseif s0 == s1 || s1 == s2
+                automorphisms *= 2
+            end
 
         else # group_len == 4
             base = UInt64(4); col = 5
@@ -977,13 +999,25 @@ function hand_unindex!(indexer::HandIndexer, round::Integer, index::Integer, car
             end
             suit_index[i+2] = low_b3
             suit_index[i+3] = group_index - low_val3
+
+            # --- FREE WEIGHT CHECK ---
+            s0, s1, s2, s3 = suit_index[i], suit_index[i+1], suit_index[i+2], suit_index[i+3]
+            if s0 == s1 == s2 == s3
+                automorphisms *= 24
+            elseif (s0 == s1 == s2) || (s1 == s2 == s3)
+                automorphisms *= 6
+            elseif (s0 == s1) && (s2 == s3)
+                automorphisms *= 4
+            elseif (s0 == s1) || (s1 == s2) || (s2 == s3)
+                automorphisms *= 2
+            end
         end
 
         i = j
     end
 
+    # Reconstruct cards
     fill!(cards, 0)
-
     used = scratch.used
     m_arr = scratch.m_arr
     location = scratch.location
@@ -1025,19 +1059,209 @@ function hand_unindex!(indexer::HandIndexer, round::Integer, index::Integer, car
         end
         location[rnd_idx] = loc
     end
-    return true
+
+    # Return weight (e.g. 4, 6, 12, 24)
+    return UInt32(24 ÷ automorphisms)
 end
 
-# function __init_nth_unset__()
-#     for i in 0:((1<<RANKS)-1)
-#         set = (~i) & ((1 << RANKS) - 1)
-#         for j in 0:(RANKS-1)
-#             if set != 0
-#                 nth_unset[j+1, i+1] = UInt8(trailing_zeros(set))
-#                 set &= set - 1
-#             end
+# function hand_unindex!(indexer::HandIndexer, round::Integer, index::Integer, cards::AbstractVector{<:Integer}, scratch::HandUnindexState)
+#     index -= 1
+#     r = round + 1
+#     @inbounds if round >= indexer.rounds || index >= indexer.round_size[r]
+#         return false
+#     end
+
+#     @inbounds packed_r = indexer.configuration_to_offset_equal[r]
+#     @inbounds suitsize_r = indexer.configuration_to_suit_size[r]
+#     @inbounds config_r = indexer.configuration[r]
+
+#     # Binary search over packed (offset<<3 | equal) entries. Only the
+#     # offset half is compared; the equal half rides along for free once
+#     # we land on cfg_idx, saving a separate array touch afterward.
+#     low = 1
+#     high = indexer.configurations[r]
+#     cfg_idx = 1
+#     @inbounds while low <= high
+#         mid = (low + high) ÷ 2
+#         if unpack_offset(packed_r[mid]) <= index
+#             cfg_idx = mid
+#             low = mid + 1
+#         else
+#             high = mid - 1
 #         end
 #     end
+
+#     @inbounds pv = packed_r[cfg_idx]
+#     idx_rem = index - unpack_offset(pv)
+#     equal_index = unpack_equal(pv)
+
+#     suit_index = scratch.suit_index
+#     fill!(suit_index, 0)
+
+#     i = 1
+#     @inbounds while i <= SUITS
+#         group_len = 1
+#         if i + 1 <= SUITS && is_equal(equal_index, i)
+#             group_len = 2
+#             if i + 2 <= SUITS && is_equal(equal_index, i + 1)
+#                 group_len = 3
+#                 if i + 3 <= SUITS && is_equal(equal_index, i + 2)
+#                     group_len = 4
+#                 end
+#             end
+#         end
+
+#         j = i + group_len
+#         suit_size = UInt64(suitsize_r[i, cfg_idx])
+#         group_size = nCr_groups[suit_size+group_len, group_len+1]
+#         q, rem = divrem(idx_rem, group_size)
+#         idx_rem = q
+#         group_index = rem
+
+#         if group_len == 1
+#             suit_index[i] = group_index
+
+#         elseif group_len == 2
+#             base = UInt64(2); col = 3
+#             low_b = UInt64(0); high_b = suit_size
+#             low_val = nCr_groups[base, col]
+#             while low_b < high_b
+#                 mid_b = (low_b + high_b + 1) >>> 1
+#                 v = nCr_groups[mid_b+base, col]
+#                 if v <= group_index
+#                     low_b = mid_b; low_val = v
+#                 else
+#                     high_b = mid_b - 1
+#                 end
+#             end
+#             suit_index[i] = low_b
+#             suit_index[i+1] = group_index - low_val
+
+#         elseif group_len == 3
+#             base = UInt64(3); col = 4
+#             low_b = UInt64(0); high_b = suit_size
+#             low_val = nCr_groups[base, col]
+#             while low_b < high_b
+#                 mid_b = (low_b + high_b + 1) >>> 1
+#                 v = nCr_groups[mid_b+base, col]
+#                 if v <= group_index
+#                     low_b = mid_b; low_val = v
+#                 else
+#                     high_b = mid_b - 1
+#                 end
+#             end
+#             suit_index[i] = low_b
+#             group_index -= low_val
+
+#             base2 = UInt64(2); col2 = 3
+#             low_b2 = UInt64(0); high_b2 = suit_size
+#             low_val2 = nCr_groups[base2, col2]
+#             while low_b2 < high_b2
+#                 mid_b2 = (low_b2 + high_b2 + 1) >>> 1
+#                 v2 = nCr_groups[mid_b2+base2, col2]
+#                 if v2 <= group_index
+#                     low_b2 = mid_b2; low_val2 = v2
+#                 else
+#                     high_b2 = mid_b2 - 1
+#                 end
+#             end
+#             suit_index[i+1] = low_b2
+#             suit_index[i+2] = group_index - low_val2
+
+#         else # group_len == 4
+#             base = UInt64(4); col = 5
+#             low_b = UInt64(0); high_b = suit_size
+#             low_val = nCr_groups[base, col]
+#             while low_b < high_b
+#                 mid_b = (low_b + high_b + 1) >>> 1
+#                 v = nCr_groups[mid_b+base, col]
+#                 if v <= group_index
+#                     low_b = mid_b; low_val = v
+#                 else
+#                     high_b = mid_b - 1
+#                 end
+#             end
+#             suit_index[i] = low_b
+#             group_index -= low_val
+
+#             base2 = UInt64(3); col2 = 4
+#             low_b2 = UInt64(0); high_b2 = suit_size
+#             low_val2 = nCr_groups[base2, col2]
+#             while low_b2 < high_b2
+#                 mid_b2 = (low_b2 + high_b2 + 1) >>> 1
+#                 v2 = nCr_groups[mid_b2+base2, col2]
+#                 if v2 <= group_index
+#                     low_b2 = mid_b2; low_val2 = v2
+#                 else
+#                     high_b2 = mid_b2 - 1
+#                 end
+#             end
+#             suit_index[i+1] = low_b2
+#             group_index -= low_val2
+
+#             base3 = UInt64(2); col3 = 3
+#             low_b3 = UInt64(0); high_b3 = suit_size
+#             low_val3 = nCr_groups[base3, col3]
+#             while low_b3 < high_b3
+#                 mid_b3 = (low_b3 + high_b3 + 1) >>> 1
+#                 v3 = nCr_groups[mid_b3+base3, col3]
+#                 if v3 <= group_index
+#                     low_b3 = mid_b3; low_val3 = v3
+#                 else
+#                     high_b3 = mid_b3 - 1
+#                 end
+#             end
+#             suit_index[i+2] = low_b3
+#             suit_index[i+3] = group_index - low_val3
+#         end
+
+#         i = j
+#     end
+
+#     fill!(cards, 0)
+
+#     used = scratch.used
+#     m_arr = scratch.m_arr
+#     location = scratch.location
+#     fill!(used, 0)
+#     fill!(m_arr, 0)
+#     @inbounds for i in 1:indexer.rounds
+#         location[i] = Int(indexer.round_start[i]) + 1
+#     end
+
+#     @inbounds for rnd in 0:round
+#         rnd_idx = rnd + 1
+#         loc = location[rnd_idx]
+#         for s in 1:SUITS
+#             n = (config_r[s, cfg_idx] >> (ROUND_SHIFT * (indexer.rounds - rnd - 1))) & ROUND_MASK
+#             if n == 0
+#                 continue
+#             end
+
+#             round_sz = nCr_ranks[RANKS-m_arr[s]+1, n+1]
+#             si = suit_index[s]
+#             sub_idx = si % round_sz
+#             suit_index[s] = si ÷ round_sz
+#             m_arr[s] += n
+
+#             shifted_cards = index_to_rank_set[n+1, sub_idx+1]
+#             used_before = used[s]
+#             rank_acc = UInt32(0)
+#             for k in 1:n
+#                 shifted_card = shifted_cards & -shifted_cards
+#                 shifted_cards ⊻= shifted_card
+#                 tz = trailing_zeros(shifted_card)
+#                 card_rank = nth_unset[used_before+1, tz+1]
+#                 rank_acc |= (1 << card_rank)
+
+#                 cards[loc] = UInt8(deck_make_card(s - 1, card_rank))
+#                 loc += 1
+#             end
+#             used[s] = used_before | rank_acc
+#         end
+#         location[rnd_idx] = loc
+#     end
+#     return true
 # end
 
 

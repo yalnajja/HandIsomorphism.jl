@@ -96,7 +96,7 @@ end
 
                 # Unindex using both libraries
                 @test c_hand_unindex(c_indexer, final_round, idx, c_cards_buf) == true
-                @test hand_unindex!(native_indexer, final_round, idx, jl_cards_buf, unindex_scratch) == true
+                @test hand_unindex!(native_indexer, final_round, idx, jl_cards_buf, unindex_scratch) > 0
 
                 # Direct Isomorphism Test:
                 # Verifies that both card sets have the identical suit-rank profile

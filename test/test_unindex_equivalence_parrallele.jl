@@ -116,7 +116,7 @@ using Base.Threads
 
                     for idx in chunk
                         c_ok = c_hand_unindex(c_indexer, final_round, idx, c_buf)
-                        jl_ok = hand_unindex!(native_indexer, final_round, idx, jl_buf, scratch)
+                        jl_ok = (hand_unindex!(native_indexer, final_round, idx, jl_buf, scratch) > 0)
 
                         is_iso = c_ok && jl_ok && are_hands_isomorphic(jl_buf, c_buf, rounds, cards_per_round)
 
