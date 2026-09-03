@@ -130,11 +130,14 @@ out_cards = zeros(UInt8, sum(cards_per_round))
 target_round = 3 # 0-based (3 = River)
 canonical_index = river_idx
 
-success = hand_unindex!(indexer, target_round, canonical_index, out_cards, unindexState)
+equivalenceClassSize = hand_unindex!(indexer, target_round, canonical_index, out_cards, unindexState)
 
-if success
+if equivalenceClassSize > 0
     println("Reconstructed cards: ", out_cards)
 end
+
+println("Equivalence class size: ", equivalenceClassSize)
+
 ```
 
 ### Performance Benchmarks (Per Hand)
