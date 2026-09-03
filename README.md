@@ -192,3 +192,5 @@ Benchmarked against Kevin Waugh's reference C implementation compiled with `-std
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+The C implementation vendored in `test/hand-isomorphism/` is third-party code by Kevin Waugh and is distributed under its own BSD-style license. This code is subject to the terms of that separate license.
