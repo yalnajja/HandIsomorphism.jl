@@ -228,11 +228,11 @@ function __init__()
     nCr_groups[1, 1] = 1
     for i in 1:(MAX_GROUP_INDEX-1)
         nCr_groups[i+1, 1] = 1
-        limit = min(i, SUITS)
-        if i < SUITS + 1
+        if i <= SUITS
             nCr_groups[i+1, i+1] = 1
         end
-        for j in 1:(limit-1)
+        limit = min(i - 1, SUITS)
+        for j in 1:limit
             nCr_groups[i+1, j+1] = nCr_groups[i, j] + nCr_groups[i, j+1]
         end
     end

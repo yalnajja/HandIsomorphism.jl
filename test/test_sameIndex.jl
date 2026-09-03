@@ -56,7 +56,9 @@ for_each_deal(cards_per_round::Vector{UInt8}, f) = for_each_deal(f, cards_per_ro
 
     test_configs = [
         # (rounds, cards_per_round, name, total_combinations)
-        (1, UInt8[2], "Preflop", 1_326),                     
+       
+        (1, UInt8[2], "Preflop", 1_326),
+        (1, UInt8[4], "Preflop Omaha", -1),                  
         (2, UInt8[2, 3], "Flop", 25_989_600),             
         # (2, UInt8[2, 5], "River 2 round", 133_784_560),
     ]
@@ -102,8 +104,9 @@ for_each_deal(cards_per_round::Vector{UInt8}, f) = for_each_deal(f, cards_per_ro
             if mismatches > 0
                 println(first_mismatch_info)
             end
-
+            
             # @test count == expected_deals
+            
             @test mismatches == 0
         end
     end
