@@ -6,7 +6,7 @@
 
 A high-performance, pure-Julia implementation of Kevin Waugh’s **suit-isomorphic hand indexing algorithm**. 
 
-`HandIsomorphism.jl` maps poker hands across multi-round extensive-form games (e.g., Texas Hold'em, Omaha, Leduc) to minimal canonical equivalence classes, compressing state and strategy spaces in CFR (Counterfactual Regret Minimization) solvers.
+`HandIsomorphism.jl` computes minimal canonical equivalence classes for poker hands in multi-round extensive-form games such as Texas Hold'em, Omaha, mapping each hand to a contiguous integer index. These equivalence classes can be used to reduce game-state representations and strategy spaces in applications such as Counterfactual Regret Minimization (CFR).
 
 ---
 
