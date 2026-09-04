@@ -16,4 +16,4 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 HandIsomorphism_jll = "984f9c1f-46fe-5a04-8363-0cf7ea158318"
 
 [targets]
-test = ["Test"]
+test = ["Test","HandIsomorphism_jll"]
