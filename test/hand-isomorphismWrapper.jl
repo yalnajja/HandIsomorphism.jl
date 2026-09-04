@@ -1,3 +1,5 @@
+using HandIsomorphism_jll
+
 const C_MAX_ROUNDS = 8 
 const C_SUITS = 4
 
@@ -21,50 +23,35 @@ struct hand_indexer_s
     hand_indexer_s() = new()
 end
 
-
-const C_DIR = joinpath(@__DIR__, "hand-isomorphism")
-const pathToLib = joinpath(C_DIR, "libhand_index.so")
-
-if !isfile(pathToLib)
-    @info "Compiling C reference library for tests..."
-    try
-        run(`make -C $C_DIR libhand_index.so`)
-    catch e
-        @error "Failed to compile C reference library. " exception=e
-        rethrow(e)
-    end
-end
-
 function c_hand_indexer_init(rounds::Integer, cards_per_round::Vector{UInt8}, indexer::Ref{hand_indexer_s})
-    ret = ccall((:hand_indexer_init, pathToLib),
+    ret = ccall((:hand_indexer_init, libhandisomorphism),
         Bool, (UInt64, Ptr{UInt8}, Ptr{hand_indexer_s}),
         UInt64(rounds), cards_per_round, indexer)
     return ret
 end
 
 function c_hand_indexer_size(indexer::Ref{hand_indexer_s}, round::Integer)
-    ret = ccall((:hand_indexer_size, pathToLib),
+    ret = ccall((:hand_indexer_size, libhandisomorphism),
         UInt64, (Ptr{hand_indexer_s}, UInt64),
         indexer, UInt64(round))
     return ret
 end
 
 function c_hand_index_last(indexer::Ref{hand_indexer_s}, cards::Vector{UInt8})
-    ret = ccall((:hand_index_last, pathToLib),
+    ret = ccall((:hand_index_last, libhandisomorphism),
         UInt64, (Ptr{hand_indexer_s}, Ptr{UInt8}),
         indexer, cards)
     return ret + 1 # Returns 1-based index
 end
 
-# 1 based indexes
+# 1-based indexes
 function c_hand_unindex(indexer::Ref{hand_indexer_s}, round::Integer, index::Integer, cards::Vector{UInt8})
-    success = ccall((:hand_unindex, pathToLib),
+    success = ccall((:hand_unindex, libhandisomorphism),
         Bool, (Ptr{hand_indexer_s}, UInt64, UInt64, Ptr{UInt8}),
         indexer, UInt64(round), UInt64(index - 1), cards)
     return success 
 end 
 
-
 function c_hand_indexer_free(indexer::Ref{hand_indexer_s})
-    ccall((:hand_indexer_free, pathToLib), Cvoid, (Ptr{hand_indexer_s},), indexer)
+    ccall((:hand_indexer_free, libhandisomorphism), Cvoid, (Ptr{hand_indexer_s},), indexer)
 end

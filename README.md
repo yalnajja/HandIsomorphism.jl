@@ -8,6 +8,9 @@ A high-performance, pure-Julia implementation of Kevin Waugh’s **suit-isomorph
 
 `HandIsomorphism.jl` computes minimal canonical equivalence classes for poker hands in multi-round extensive-form games such as Texas Hold'em, Omaha, mapping each hand to a contiguous integer index. These equivalence classes can be used to reduce game-state representations and strategy spaces in applications such as Counterfactual Regret Minimization (CFR).
 
+> **Note on `HandIsomorphism_jll`:**  
+> This package is a native, independent pure-Julia reimplementation, **not** a wrapper around the C library. If you are looking for binary wrapper bindings to the reference C implementation by Kevin Waugh ([`kdub0/hand-isomorphism`](https://github.com/kdub0/hand-isomorphism)), see [`HandIsomorphism_jll`](https://github.com/JuliaBinaryWrappers/HandIsomorphism_jll.jl). In this repository, `HandIsomorphism_jll` is used solely as a test oracle to verify algorithmic correctness against the reference implementation.
+
 ---
 
 ## Key Features
@@ -196,4 +199,3 @@ Benchmarked against Kevin Waugh's reference C implementation compiled with `-std
 
 This project is licensed under the [MIT License](LICENSE).
 
-The C implementation vendored in `test/hand-isomorphism/` is third-party code by Kevin Waugh and is distributed under its own BSD-style license. This code is subject to the terms of that separate license.
